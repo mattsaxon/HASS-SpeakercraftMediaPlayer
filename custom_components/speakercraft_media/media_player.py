@@ -1,4 +1,5 @@
 """Support for Speakercraft Media player."""
+from asyncio.exceptions import IncompleteReadError
 import logging
 import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
@@ -6,6 +7,7 @@ import json
 import serial_asyncio
 import asyncio
 import binascii
+import sys
 
 import homeassistant.components as core
 from homeassistant.core import split_entity_id
@@ -76,11 +78,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
 )
 
 
-
-
-logger = logging.getLogger('speakercraft')
 volumetodb = [80, 78, 78, 76, 74, 74, 72, 72, 70, 68, 68, 66, 64, 64, 62, 62, 60, 58, 58, 56, 54, 54, 52, 52, 50, 48, 48, 46, 46, 44, 43, 43, 42, 41, 41, 40, 40, 39, 38, 38, 37, 36, 36, 35, 35, 34, 33, 33, 32, 32, 31, 30, 30, 29, 28, 28, 27, 27, 26, 25, 25, 24, 23, 23, 22, 22, 21, 20, 19, 19, 18, 18, 17, 17, 16, 15, 15, 14, 14, 13, 12, 12, 11, 10, 10, 9, 9, 8, 7, 7, 6, 5, 5, 4, 4, 3, 2, 2, 1, 1, 0]
-
 
 
 def getbit(theByte: int, theBit: int):
@@ -88,14 +86,51 @@ def getbit(theByte: int, theBit: int):
 		return True
 	return False
 
+def calc_checksum(data):
+	checksum = sum(data)
+	while checksum > 256:
+		checksum -= 256	
+	return 0x100 - checksum
+
+def validate_checksum(data) -> bool:
+	
+	data_length = len(data) -1
+
+	# check we have enough data to validate
+	if data_length < 3:
+		_LOGGER.debug("not a command")
+		return False
+
+	valid_length = data[1]
+
+	if data_length == valid_length:
+		pass
+
+	# if smaller than length return
+	elif data_length < valid_length:
+		_LOGGER.debug("short, is truncated")
+		return False
+
+	# if longer than length truncate
+	elif data_length > valid_length:
+		_LOGGER.debug("long, truncating")
+		data = data[:valid_length+1]
+
+	checksum = calc_checksum(data[:valid_length])
+
+	if data[valid_length] != checksum:
+		_LOGGER.debug("incorrect checksum")
+		return False
+
+	return True
 		
 
 class SpeakerCraftZ:
 
-	def __init__(self, zone, commandqueue, poweroffcb):
+	def __init__(self, zone, send_command, poweroffcb):
 		self.zone = int(zone)
 		self.zoneid = int(zone) - 1
-		self.commandqueue = commandqueue
+		self._send_command = send_command
 		self.power = "Off"
 		self.volume = 0
 		self.volumeDB = 0
@@ -112,110 +147,94 @@ class SpeakerCraftZ:
 	def updatezone(self, status):
 		
 		if status != self.previousstatus:
-			print("SC updatezone Zone " + str(self.zone) + " Status Updated")
-			
-			statusbyte = int(status[10:12], 16)
+
+			_LOGGER.debug("status message " + bytes.hex(status))
+			flags = status[5]
 
 			#status
-			if getbit(statusbyte, 1) == True:
+			if getbit(flags, 1) == True:
 				self.power = "On"
 				self.masterpower = "On"
 			else:
 				self.power = "Off"
 				self.poweroffcb(self.zone)
 
-			self.volumeDB = int(status[20:22],16)
-			self.volume = int(status[14:16],16)
+			self.volumeDB = status[10]
+			self.volume = status[7]
 
 			#mute
-			if getbit(statusbyte, 0) == True:
+			if getbit(flags, 0) == True:
 				self.mute = "On"
 			else:
 				self.mute = "Off"
 					 
 			#source
-			self.source = int(status[12:14],16) + 1
-			self.bass = int(status[16:18],16)
-			self.trebble = int(status[18:20],16)
+			self.source = status[6] + 1
+			self.bass = status[8]
+			self.trebble = status[9]
 			
 			self.previousstatus = status
 			
-			print("sc updatezone Zone " + str(self.zone) + " Power " + str(self.power) + " Volume " + str(self.volume) + " VolumeDB " + str(self.volumeDB) + " Source " + str(self.source))
+			_LOGGER.info("Status Update Zone " + str(self.zone) + " Power " + str(self.power) + " Volume " + str(self.volume) + " VolumeDB " + str(self.volumeDB) + " Source " + str(self.source))
 
 			for callback in self.callbacks:
 				callback()
 
-	def checksum(self, data):
-		checksum = sum(data)
-		while checksum > 256:
-			checksum -= 256	
-		return 0x100 - checksum
 
-
-
-
-		
-	def queuecommand(self, command):
-		checksum = self.checksum(command)
+	def queuecommand(self, command: bytes):
+		checksum = calc_checksum(command)
 		command.append(checksum)
-		self.commandqueue.append(command)
-		print("Zone " + str(self.zone) + " Command Enqueued " + str(bytes(command).hex()))
+		self._send_command(command)
+		_LOGGER.debug("Zone " + str(self.zone) + " Command Enqueued " + str(bytes(command).hex()))
 
 	def cmdinitialise(self):
-		print("Zone " + str(self.zone) + " Request Info")
+		_LOGGER.info("Zone " + str(self.zone) + " Request Info")
 		data = bytearray([0x55, 0x04, 0x68, self.zoneid])
 	  #  data = bytearray([0x55, 0x03, 0x41])
 		self.queuecommand(data)
 	
 	def cmdpoweron(self):
-		print("Zone " + str(self.zone) + " Power On")
+		_LOGGER.info("Zone " + str(self.zone) + " Power On")
 		data = bytearray([0x55, 0x04, 0xA0, self.zoneid])
 		self.queuecommand(data)
 		
-
 	def cmdpoweroff(self):
-		print("Zone " + str(self.zone) + " Power Off")
+		_LOGGER.info("Zone " + str(self.zone) + " Power Off")
 		data = bytearray([0x55, 0x04, 0xA1, self.zoneid])
 		self.queuecommand(data)
 
 	def cmdvolumeDB(self, volumedb):
-		print("Zone " + str(self.zone) + " Volume " + str(volumedb))
+		_LOGGER.info("Zone " + str(self.zone) + " Volume " + str(volumedb))
 		data = bytearray([0x55, 0x08, 0x57, 0x00, 0x00, 0x05, volumedb, self.zoneid])
 		self.queuecommand(data)
 
-
 	def cmdvolume(self, volume):
-		print("Zone " + str(self.zone) + " Volume% " + str(volume))
+		_LOGGER.info("Zone " + str(self.zone) + " Volume% " + str(volume))
 		volumeDB = volumetodb[volume]
 		self.cmdvolumeDB(volumeDB)
 		
-
 	def cmdmute(self):
-		print("Zone " + str(self.zone) + " Mute")
+		_LOGGER.info("Zone " + str(self.zone) + " Mute")
 		data = bytearray([0x55, 0x08, 0x57, 0x00, 0x00, 0x04, 0x00, self.zoneid])
 		self.queuecommand(data)
 
 	def cmdunmute(self):
-		print("Zone " + str(self.zone) + " UnMute")
+		_LOGGER.info("Zone " + str(self.zone) + " UnMute")
 		data = bytearray([0x55, 0x08, 0x57, 0x00, 0x00, 0x03, 0x00, self.zoneid])
 		self.queuecommand(data)
 
-
 	def cmdvolumeup(self):
-		print("Zone " + str(self.zone) + " Volume Up")
+		_LOGGER.info("Zone " + str(self.zone) + " Volume Up")
 		data = bytearray([0x55, 0x08, 0x57, 0x00, 0x00, 0x01, 0x00, self.zoneid])
 		self.queuecommand(data)
 
-
 	def cmdvolumedown(self):
-		print("Zone " + str(self.zone) + " Volume Down")
+		_LOGGER.info("Zone " + str(self.zone) + " Volume Down")
 		data = bytearray([0x55, 0x08, 0x57, 0x00, 0x00, 0x00, 0x00, self.zoneid])
 		self.queuecommand(data)
 
-
-
 	def cmdsource(self, source):
-		print("Zone " + str(self.zone) + " Source " + str(source))
+		_LOGGER.info("Zone " + str(self.zone) + " Source " + str(source))
 		source = source - 1
 		data = bytearray([0x55, 0x05, 0xA3, self.zoneid, source])
 		self.queuecommand(data)
@@ -223,11 +242,10 @@ class SpeakerCraftZ:
 	def masteroff(self, update):
 		self.masterpower = "Off"
 		if update==True:
-			print("call callback")
+			_LOGGER.info("call callback")
 			for callback in self.callbacks:
-				print("cb")
+				_LOGGER.info("cb")
 				callback()
-
 
 	def masteron(self, update):
 		self.masterpower = "On"
@@ -235,9 +253,7 @@ class SpeakerCraftZ:
 			for callback in self.callbacks:
 				callback()
 
-		
-		
-		
+			
 	def addcallback(self, callback):
 		self.callbacks.append(callback)
 
@@ -245,27 +261,25 @@ class SpeakerCraftZ:
 		self.callbacks.remove(callback)
 
 
-
-
 class SpeakerCraft:
-	"""Manages the RIO connection to a Russound device."""
+	"""Manages the RS232 connection to a Speakercraft MZC device."""
 
 	def __init__(self, loop, comport):
 		"""
-		Initialize the Russound object using the event loop, host and port
-		provided.
+		Initialize the Speakercarft object using the event loop, host and port provided.
 		"""
-		self._loop = loop
+		self._loop = loop # type: asyncio.BaseEventLoop
 		self._comport = comport
-		self._commandqueue = []
 		self.zones = {}
 		
 		self.continuerunning = 1
 		
 		for x in range(1, 9):
-			self.zones[x] = SpeakerCraftZ(x, self._commandqueue, self.checkmasterpower)
+			self.zones[x] = SpeakerCraftZ(x, self.send_command, self.checkmasterpower)
+
 
 	async def checkmasterpower(self, zone):
+		_LOGGER.debug("checkmasterpower()")
 		alloff = True
 		for x in range(1, 9):
 			if self.zones[x].power == "On":
@@ -277,86 +291,87 @@ class SpeakerCraft:
 				update = False
 			if alloff == True:
 				self.zones[zone].masteroff(update)
-				print("Zone All Off" + str(zone) + ":" + str(x) + " Update " + str(update))
+				_LOGGER.info("Zone All Off" + str(zone) + ":" + str(x) + " Update " + str(update))
 			else:
 				self.zones[zone].masteron(update)
-				print("Zone Not All Off" + str(zone) + "Update " + str(update))
+				_LOGGER.info("Zone Not All Off" + str(zone) + "Update " + str(update))
+
 
 	async def async_setup(self):
-		#self._loop.create_task(self.async_serialrunner())
-		coro = await serial_asyncio.create_serial_connection(self._loop, self.serial_protocol_factory, '/dev/serial/by-id/usb-1a86_USB2.0-Ser_-if00-port0', baudrate=57600)
-		print('Reader created')
-		
-		
+		_LOGGER.debug("async_setup()")
+
+		self._reader = None # type: asyncio.StreamReader
+		self._writer = None # type: asyncio.StreamWriter
+		self._reader, self._writer = await serial_asyncio.open_serial_connection(loop=self._loop, url=self._comport, baudrate=57600, xonxoff=True)
+		self._runner = self._loop.create_task(self.async_serialrunner())
+
+
+	def send_command(self, command: bytes):
+			_LOGGER.debug("Sending Command " + bytes(command).hex())
+			self._writer.write(command)
+
+
+	async def async_serialrunner(self):
+		_LOGGER.debug("async_serialrunner()")
+		reader = self._reader
+
+		while True:
+
+			try:
+				temp = await reader.readuntil(b'\x55')
+				if temp != b'\x55':
+					_LOGGER.warn("throw away early trim " + bytes.hex(temp))
+				data = b'\x55'
+				length = await reader.readexactly(1)
+				data = data + length
+				length_to_read = ord(length)-2
+				if length_to_read > 32:
+					_LOGGER.warn("length too long, assume incorrect and find next message " + bytes.hex(data))
+					continue
+
+				if length_to_read > 0:
+					data = data + await reader.readexactly(length_to_read)
+				else:
+					_LOGGER.warn("throw away unreadable packet " + bytes.hex(data))
+					continue
+				checksum = ord(await reader.readexactly(1))
+
+				if checksum == calc_checksum(data):
+					self.process_message(data)
+				else:
+					_LOGGER.warn("incorrect checksum, ignoring " + bytes.hex(data))
+
+			except EOFError:
+				_LOGGER.warn("EOF")
+			except asyncio.CancelledError:
+				break
+			except:
+				_LOGGER.exception("serialreader() exception")
+
+
+	def process_message(self, data):
+
+		if  data[:3] == b'\x55\x0b\x20':
+			zoneid = data[3] + 1
+			self.zones[zoneid].updatezone(data)
+
+		elif  data[0] == 0x55 and data[2] == 0x95 and data[4] == 0x01:
+			_LOGGER.debug("Confirmation " + bytes.hex(data))	
+
+		elif  data[0] == 0x55 and data[2] == 0x95 and data[4] == 0x00:
+			_LOGGER.warn("Command Unrecognised " + bytes.hex(data))
+
+		elif data[:3] == b'\x55\x08\x29':
+			_LOGGER.warn("Tuner message, unprocessed " + bytes.hex(data))
+		else:
+			_LOGGER.warn("Unknown " + bytes.hex(data))
 
 			
-	def serial_protocol_factory(self):
-		return self.serial_protocol(self.zones, self._commandqueue)
-	
-	class serial_protocol(asyncio.Protocol):
-		def __init__(self, zones, commandqueue, *args, **kw):
-			super().__init__(*args, **kw)
-			print("Init ")
-			self.zones = zones
-			self._commandqueue = commandqueue
-		#BlahBlahBlah
-		def connection_made(self, transport):
-			self.transport = transport
-			print('port opened', transport)
-			transport.serial.rts = False
-			#transport.write(b'hello world\n')
-
-		def data_received(self, data):
-			#self.reciever(data)
-			#print('data received', repr(data))
-			#self.transport.close()
-			readText = binascii.hexlify(data).decode('utf-8')
-			#print(readText)
-			if readText=="11":
-				if self._commandqueue:
-				#print("Start Input")
-					command = self._commandqueue.pop(0)
-					print("Sending Command " + str(bytes(command).hex()))
-					self.transport.write(bytes(command))
-					#writer.write(bytes(command))
-					
-			elif readText=="13":
-				pass
-				#print("End Input")
-			
-			elif readText[:8] == "55082900":
-				#tuner
-				pass
-			elif  readText[:8] == "55082901":
-				#tuner
-				pass
-			elif  readText[:7] == "550b200":
-				zoneid = int(readText[7:8]) + 1
-				#print("Z update  " + str(zoneid) )
-				self.zones[zoneid].updatezone(readText)
-			elif  readText[:2] == "55" and readText[4:6] == "95" and readText[8:10] == "01" :
-				command = False
-				print("Confirmation " + readText)	
-			elif  readText[:2] == "55" and readText[4:6] == "95" and readText[8:10] == "00" :
-				print("Command Unrecognised " + readText)
-				command = False
-			else:
-				print("Unknown " + readText)
-
-			
-		def connection_lost(self, exc):
-			print('port closed')
-			#asyncio.get_event_loop().stop()
 
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
 
-	
-
-
 	sc = SpeakerCraft(hass.loop, config.get(CONF_SERIAL_PORT))
-
 	await sc.async_setup()
-
 	print("SC runner is running")
 	
 	devices = []
@@ -371,13 +386,14 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
 	print("SC Entities Added")
 	print("SC Complete Setup")
 
+
+
 class SpeakercraftMediaPlayer(MediaPlayerEntity):
-	"""Representation of a Russound Zone."""
+	"""Representation of a Spreakercraft Zone."""
 
 	def __init__(self, hass, name, scz, sources, default_source, default_volume, power_target):
 		"""Initialize the zone device."""
 		super().__init__()
-
 
 		self._hass = hass
 		self._name = name
@@ -398,7 +414,7 @@ class SpeakercraftMediaPlayer(MediaPlayerEntity):
 	async def checkalloff(self):
 		print("checkalloff" + str(self._zone.zone))
 		if self._zone.masterpower == "Off":
-			print("master off")
+			_LOGGER.info("master off")
 			if self._power_target:
 				if core.is_on(self._hass, self._power_target):
 					print("sw is on")
@@ -452,10 +468,6 @@ class SpeakercraftMediaPlayer(MediaPlayerEntity):
 	def volume_level(self):
 		"""Volume level of the media player (0..1)."""
 		return self._zone.volume /100.00
-
-		
-		
-		
 		
 	@property
 	def is_volume_muted(self):
@@ -475,13 +487,10 @@ class SpeakercraftMediaPlayer(MediaPlayerEntity):
 		"""Volume level of the media player (0..1)."""
 		return "mdi:speaker"
 
-		
-		
 	@property
 	def unique_id(self):
 		return "speakercraft_zone" + str(self._zone.zone)
 
-		
 	@property
 	def device_state_attributes(self):
 		"""Return the state attributes."""
@@ -519,8 +528,6 @@ class SpeakercraftMediaPlayer(MediaPlayerEntity):
 			source = self._source_reverse[source]
 			self._zone.cmdsource(source)
 			
-		
-
 	async def async_mute_volume(self, mute):
 		if mute:
 			self._zone.cmdmute()
