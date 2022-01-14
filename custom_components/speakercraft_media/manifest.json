@@ -1,6 +1,7 @@
 {
   "domain": "speakercraft_media",
   "name": "Speakercraft Media Player",
+  "version": "0.1",
   "documentation": "",
   "dependencies": [],
   "codeowners": [],
