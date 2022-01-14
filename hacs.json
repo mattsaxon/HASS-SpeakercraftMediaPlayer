@@ -1,0 +1,7 @@
+{
+	"name": "SpeakerCraft Media Player",
+	"content_in_root": false,
+	"domains": ["media_player"],
+	"country": ["EN"],
+	"render_readme": true
+}
