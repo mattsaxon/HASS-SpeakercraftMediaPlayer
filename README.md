@@ -3,6 +3,7 @@ Speakercraft MZC Platform for Home Assistant
 
 Repository created for install via [HACS](https://hacs.xyz/docs/setup/download) based on code by [@sjeffrey101](https://github.com/sjeffrey101) [here](https://github.com/sjeffrey101/homeassistant_speakercraft/tree/main/old%20ha%20component/custom_components/speakercraft_media)
 
+
 Example Configuration.yaml
 
 ```
@@ -26,3 +27,5 @@ media_player:
         default_source: 5
         power_target: switch.speakercraft
 ```
+
+As per above config, the entity ```switch.speakercraft``` should exist which functions as the main masteroff switch 
