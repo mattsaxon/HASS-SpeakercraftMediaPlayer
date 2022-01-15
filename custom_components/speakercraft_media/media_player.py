@@ -138,7 +138,7 @@ class SpeakerCraftZ:
 		self.mute = "Off"
 		self.previousstatus = ""
 		self.bass = 0
-		self.trebble = 0
+		self.treble = 0
 		self.callbacks = []
 		self.masterpower = "Off"
 		self._poweroffcb = poweroffcb
@@ -171,7 +171,7 @@ class SpeakerCraftZ:
 			#source
 			self.source = status[6] + 1
 			self.bass = status[8]
-			self.trebble = status[9]
+			self.treble = status[9]
 			
 			self.previousstatus = status
 			
@@ -292,7 +292,7 @@ class SpeakerCraft:
 				_LOGGER.info("All Off Zone " + str(zone) + ": " + str(x) + " Update Front-End " + str(update))
 				await self.zones[zone].masteroff(update)
 			else:
-				_LOGGER.info("Not All Off Zone " + str(zone) + "Update " + str(update))
+				_LOGGER.info("Not All Off Zone " + str(zone) + " Update " + str(update))
 				await self.zones[zone].masteron(update)
 
 
@@ -495,7 +495,7 @@ class SpeakercraftMediaPlayer(MediaPlayerEntity):
 		"""Return the state attributes."""
 		attr = {}
 		attr["Bass"] = str(self._zone.bass)
-		attr["Trebble"] = str(self._zone.trebble)
+		attr["treble"] = str(self._zone.treble)
 		
 		return attr
 
