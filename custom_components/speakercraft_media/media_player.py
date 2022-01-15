@@ -141,6 +141,8 @@ class SpeakerCraftZ:
 		self.treble = 0
 		self.callbacks = []
 		self.masterpower = "Off"
+		self.partymaster = False # type: bool
+		self.partymode = False # Type: bool
 		self._poweroffcb = poweroffcb
 
 
@@ -167,7 +169,11 @@ class SpeakerCraftZ:
 				self.mute = "On"
 			else:
 				self.mute = "Off"
-					 
+
+			#party
+			self.partymode = bool(getbit(flags,2))
+			self.partymaster = bool(getbit(flags,3))
+
 			#source
 			self.source = status[6] + 1
 			self.bass = status[8]
@@ -237,6 +243,11 @@ class SpeakerCraftZ:
 		_LOGGER.info("Zone " + str(self.zone) + " Source " + str(source))
 		source = source - 1
 		data = bytearray([0x55, 0x05, 0xA3, self.zoneid, source])
+		self.queuecommand(data)
+
+	def cmdpartymode(self, on: bool):
+		_LOGGER.info("Zone " + str(self.zone) + " PartyMode " + str(on))
+		data = bytearray([0x55, 0x05, 0xA2, int(on), self.zoneid])
 		self.queuecommand(data)
 
 	async def masteroff(self, update):
@@ -495,8 +506,9 @@ class SpeakercraftMediaPlayer(MediaPlayerEntity):
 		"""Return the state attributes."""
 		attr = {}
 		attr["Bass"] = str(self._zone.bass)
-		attr["treble"] = str(self._zone.treble)
-		
+		attr["Treble"] = str(self._zone.treble)
+		attr["Party Mode"] = self._zone.partymode
+		attr["Party Master"] = self._zone.partymaster
 		return attr
 
 		
