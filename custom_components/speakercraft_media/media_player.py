@@ -144,7 +144,7 @@ class SpeakerCraftZ:
 		self._poweroffcb = poweroffcb
 
 
-	def updatezone(self, status):
+	async def updatezone(self, status):
 		
 		if status != self.previousstatus:
 
@@ -157,7 +157,7 @@ class SpeakerCraftZ:
 				self.masterpower = "On"
 			else:
 				self.power = "Off"
-				self._poweroffcb(self.zone)
+				await self._poweroffcb(self.zone)
 
 			self.volumeDB = status[10]
 			self.volume = status[7]
@@ -178,7 +178,7 @@ class SpeakerCraftZ:
 			_LOGGER.info("Status Update Zone " + str(self.zone) + " Power " + str(self.power) + " Volume " + str(self.volume) + " VolumeDB " + str(self.volumeDB) + " Source " + str(self.source))
 
 			for callback in self.callbacks:
-				callback()
+				await callback()
 
 
 	def queuecommand(self, command: bytes):
@@ -239,19 +239,19 @@ class SpeakerCraftZ:
 		data = bytearray([0x55, 0x05, 0xA3, self.zoneid, source])
 		self.queuecommand(data)
 
-	def masteroff(self, update):
+	async def masteroff(self, update):
 		self.masterpower = "Off"
 		if update==True:
 			_LOGGER.info("Zone " + str(self.zone) + " Off, calling update callback")
 			for callback in self.callbacks:
-				callback()
+				await callback()
 
-	def masteron(self, update):
+	async def masteron(self, update):
 		self.masterpower = "On"
 		if update==True:
 			_LOGGER.info("Zone " + str(self.zone) + " On, calling update callback")
 			for callback in self.callbacks:
-				callback()
+				await callback()
 
 			
 	def addcallback(self, callback):
@@ -278,7 +278,7 @@ class SpeakerCraft:
 			self.zones[x] = SpeakerCraftZ(x, self.send_command, self.checkmasterpower)
 
 
-	def checkmasterpower(self, zone):
+	async def checkmasterpower(self, zone):
 		alloff = True
 		for x in range(1, 9):
 			if self.zones[x].power == "On":
@@ -290,10 +290,10 @@ class SpeakerCraft:
 				update = False
 			if alloff == True:
 				_LOGGER.info("All Off Zone " + str(zone) + ": " + str(x) + " Update Front-End " + str(update))
-				self.zones[zone].masteroff(update)
+				await self.zones[zone].masteroff(update)
 			else:
-				self.zones[zone].masteron(update)
 				_LOGGER.info("Not All Off Zone " + str(zone) + "Update " + str(update))
+				await self.zones[zone].masteron(update)
 
 
 	async def async_setup(self):
@@ -336,7 +336,7 @@ class SpeakerCraft:
 				checksum = ord(await reader.readexactly(1))
 
 				if checksum == calc_checksum(data):
-					self.process_message(data)
+					await self.process_message(data)
 				else:
 					_LOGGER.warn("incorrect checksum, ignoring " + bytes.hex(data))
 
@@ -348,11 +348,11 @@ class SpeakerCraft:
 				_LOGGER.exception("serialreader() exception")
 
 
-	def process_message(self, data):
+	async def process_message(self, data):
 
 		if  data[:3] == b'\x55\x0b\x20':
 			zoneid = data[3] + 1
-			self.zones[zoneid].updatezone(data)
+			await self.zones[zoneid].updatezone(data)
 
 		elif  data[0] == 0x55 and data[2] == 0x95 and data[4] == 0x01:
 			_LOGGER.debug("Confirmation " + bytes.hex(data))	
@@ -405,9 +405,9 @@ class SpeakercraftMediaPlayer(MediaPlayerEntity):
 		self._default_volume = default_volume
 		self._power_target = power_target
 
-	def updatecallback(self):
+	async def updatecallback(self):
 		_LOGGER.debug("updatecallback Zone " + str(self._zone.zone))
-		asyncio.run_coroutine_threadsafe(self.checkalloff(), loop=self._hass.loop)
+		await self.checkalloff()
 		self.schedule_update_ha_state()
  
 	async def checkalloff(self):
