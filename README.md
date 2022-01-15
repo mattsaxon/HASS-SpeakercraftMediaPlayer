@@ -28,4 +28,6 @@ media_player:
         power_target: switch.speakercraft
 ```
 
-As per above config, the entity ```switch.speakercraft``` should exist which functions as the main masteroff switch 
+As per above config, the entity ```switch.speakercraft``` should exist which functions as the main masteroff switch.
+
+This can be used as an overall indicator of state by using an [input_boolean](https://www.home-assistant.io/integrations/input_boolean/) or contol another switch, for example a smart plug which powers the Speakercraft amplifier.
