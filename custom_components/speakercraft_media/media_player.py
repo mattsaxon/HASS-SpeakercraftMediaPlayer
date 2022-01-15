@@ -492,7 +492,7 @@ class SpeakercraftMediaPlayer(MediaPlayerEntity):
 		return "speakercraft_zone" + str(self._zone.zone)
 
 	@property
-	def device_state_attributes(self):
+	def extra_state_attributes(self):
 		"""Return the state attributes."""
 		attr = {}
 		attr["Bass"] = str(self._zone.bass)
