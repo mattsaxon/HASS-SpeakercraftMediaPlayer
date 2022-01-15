@@ -141,7 +141,7 @@ class SpeakerCraftZ:
 		self.trebble = 0
 		self.callbacks = []
 		self.masterpower = "Off"
-		self.poweroffcb = poweroffcb
+		self._poweroffcb = poweroffcb
 
 
 	def updatezone(self, status):
@@ -157,7 +157,7 @@ class SpeakerCraftZ:
 				self.masterpower = "On"
 			else:
 				self.power = "Off"
-				self.poweroffcb(self.zone)
+				self._poweroffcb(self.zone)
 
 			self.volumeDB = status[10]
 			self.volume = status[7]
@@ -242,14 +242,14 @@ class SpeakerCraftZ:
 	def masteroff(self, update):
 		self.masterpower = "Off"
 		if update==True:
-			_LOGGER.info("call callback")
+			_LOGGER.info("Zone " + str(self.zone) + " Off, calling update callback")
 			for callback in self.callbacks:
-				_LOGGER.info("cb")
 				callback()
 
 	def masteron(self, update):
 		self.masterpower = "On"
 		if update==True:
+			_LOGGER.info("Zone " + str(self.zone) + " On, calling update callback")
 			for callback in self.callbacks:
 				callback()
 
@@ -278,8 +278,7 @@ class SpeakerCraft:
 			self.zones[x] = SpeakerCraftZ(x, self.send_command, self.checkmasterpower)
 
 
-	async def checkmasterpower(self, zone):
-		_LOGGER.debug("checkmasterpower()")
+	def checkmasterpower(self, zone):
 		alloff = True
 		for x in range(1, 9):
 			if self.zones[x].power == "On":
@@ -290,11 +289,11 @@ class SpeakerCraft:
 			else:
 				update = False
 			if alloff == True:
+				_LOGGER.info("All Off Zone " + str(zone) + ": " + str(x) + " Update Front-End " + str(update))
 				self.zones[zone].masteroff(update)
-				_LOGGER.info("Zone All Off" + str(zone) + ":" + str(x) + " Update " + str(update))
 			else:
 				self.zones[zone].masteron(update)
-				_LOGGER.info("Zone Not All Off" + str(zone) + "Update " + str(update))
+				_LOGGER.info("Not All Off Zone " + str(zone) + "Update " + str(update))
 
 
 	async def async_setup(self):
@@ -407,17 +406,17 @@ class SpeakercraftMediaPlayer(MediaPlayerEntity):
 		self._power_target = power_target
 
 	def updatecallback(self):
-		print("updatecallback called" + str(self._zone.zone))
-		#await self.checkalloff()
+		_LOGGER.debug("updatecallback Zone " + str(self._zone.zone))
+		asyncio.run_coroutine_threadsafe(self.checkalloff(), loop=self._hass.loop)
 		self.schedule_update_ha_state()
  
 	async def checkalloff(self):
-		print("checkalloff" + str(self._zone.zone))
+		_LOGGER.debug("checkalloff Zone " + str(self._zone.zone))
 		if self._zone.masterpower == "Off":
 			_LOGGER.info("master off")
 			if self._power_target:
 				if core.is_on(self._hass, self._power_target):
-					print("sw is on")
+					_LOGGER.debug("Switch is currently on, switch off")
 					domain = split_entity_id(self._power_target)[0]
 					data = {ATTR_ENTITY_ID: self._power_target}
 					await self._hass.services.async_call(domain, SERVICE_TURN_OFF, data)
