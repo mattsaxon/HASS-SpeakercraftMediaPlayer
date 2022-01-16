@@ -4,7 +4,7 @@ Speakercraft MZC Platform for Home Assistant
 Repository created for install via [HACS](https://hacs.xyz/docs/setup/download) based on code by [@sjeffrey101](https://github.com/sjeffrey101) [here](https://github.com/sjeffrey101/homeassistant_speakercraft/tree/main/old%20ha%20component/custom_components/speakercraft_media)
 
 
-Example Configuration.yaml
+## Example Configuration.yaml
 
 ```
 media_player:
@@ -32,8 +32,12 @@ switch:
       - platform: speaercraft_media
 ```
 
+## Master Switch
+
 As per above config, the entity ```switch.speakercraft``` should exist which functions as the main masteroff switch.
 
 This can be used as an overall indicator of state by using an [input_boolean](https://www.home-assistant.io/integrations/input_boolean/) or contol another switch, for example a smart plug which powers the Speakercraft amplifier.
 
-The swwitch platfrom add a "Party Mode" switch per zone with the name of the zone suffixed with "_party"
+## Party Mode
+
+The switch platfrom add a "Party Mode" switch per zone with the name of the zone suffixed with "_party"
