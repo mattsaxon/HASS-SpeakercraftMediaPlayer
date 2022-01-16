@@ -1,17 +1,16 @@
 """Support for Speakercraft Media player."""
-from asyncio.exceptions import IncompleteReadError
 import logging
-import voluptuous as vol
-import homeassistant.helpers.config_validation as cv
-import json
 import serial_asyncio
 import asyncio
-import binascii
-import sys
+
+import voluptuous as vol
+import homeassistant.helpers.config_validation as cv
 
 import homeassistant.components as core
-from homeassistant.core import split_entity_id
+from homeassistant.core import split_entity_id, HomeAssistant
 from homeassistant.components.media_player import PLATFORM_SCHEMA, MediaPlayerEntity
+from . import DOMAIN
+
 from homeassistant.components.media_player.const import (
 	SUPPORT_SELECT_SOURCE,
 	SUPPORT_TURN_OFF,
@@ -30,9 +29,6 @@ from homeassistant.const import (
 	SERVICE_TURN_ON,
 )
 
-
-_LOGGER = logging.getLogger(__name__)
-
 CONF_SOURCES = "sources"
 CONF_ZONES = "zones"
 CONF_DEFAULT_SOURCE = "default_source"
@@ -48,10 +44,8 @@ DEFAULT_ZONES = {
 	5: "Zone 5",
 	6: "Zone 6",
 	7: "Zone 7",
-	8: "Zone 8",
-
+	8: "Zone 8"
 }
-
 
 DEFAULT_SOURCES = {
 	1: "Source 1",
@@ -61,10 +55,8 @@ DEFAULT_SOURCES = {
 	5: "Source 5",
 	6: "Source 6",
 	7: "Source 7",
-	8: "Source 8",
-
+	8: "Source 8"
 }
-
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
 	{
@@ -77,9 +69,31 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
 	}
 )
 
+_LOGGER = logging.getLogger(__name__)
+
+async def async_setup_platform(hass: HomeAssistant, config, async_add_entities, discovery_info=None):
+
+	_LOGGER.debug("async_setup_plaform() entry")
+	
+	sc = SpeakerCraft(hass.loop, config.get(CONF_SERIAL_PORT))
+	hass.data[DOMAIN].sc = sc
+	await sc.async_setup()
+	_LOGGER.debug("SC runner is running")
+	
+	devices = []
+	
+	zones = config.get(CONF_ZONES)
+	hass.data[DOMAIN].zones = zones
+	power_target = config.get(CONF_TARGET)
+	for key in zones:
+		devices.append(SpeakercraftMediaPlayer(hass, zones[key], sc.zones[key], config.get(CONF_SOURCES), config.get(CONF_DEFAULT_SOURCE), config.get(CONF_DEFAULT_VOLUME), power_target))
+
+	_LOGGER.debug("SC Adding Entities")
+	async_add_entities(devices)
+	_LOGGER.debug("async_setup_plaform() exit")
+	
 
 volumetodb = [80, 78, 78, 76, 74, 74, 72, 72, 70, 68, 68, 66, 64, 64, 62, 62, 60, 58, 58, 56, 54, 54, 52, 52, 50, 48, 48, 46, 46, 44, 43, 43, 42, 41, 41, 40, 40, 39, 38, 38, 37, 36, 36, 35, 35, 34, 33, 33, 32, 32, 31, 30, 30, 29, 28, 28, 27, 27, 26, 25, 25, 24, 23, 23, 22, 22, 21, 20, 19, 19, 18, 18, 17, 17, 16, 15, 15, 14, 14, 13, 12, 12, 11, 10, 10, 9, 9, 8, 7, 7, 6, 5, 5, 4, 4, 3, 2, 2, 1, 1, 0]
-
 
 def getbit(theByte: int, theBit: int):
 	if theByte & (1 << theBit):
@@ -123,7 +137,8 @@ def validate_checksum(data) -> bool:
 		return False
 
 	return True
-		
+
+
 
 class SpeakerCraftZ:
 
@@ -272,12 +287,13 @@ class SpeakerCraftZ:
 		self.callbacks.remove(callback)
 
 
+
 class SpeakerCraft:
 	"""Manages the RS232 connection to a Speakercraft MZC device."""
 
 	def __init__(self, loop, comport):
 		"""
-		Initialize the Speakercarft object using the event loop, host and port provided.
+		Initialize the Speakercraft object using the event loop, host and port provided.
 		"""
 		self._loop = loop # type: asyncio.BaseEventLoop
 		self._comport = comport
@@ -376,32 +392,12 @@ class SpeakerCraft:
 		else:
 			_LOGGER.warn("Unknown " + bytes.hex(data))
 
-			
-
-async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
-
-	sc = SpeakerCraft(hass.loop, config.get(CONF_SERIAL_PORT))
-	await sc.async_setup()
-	print("SC runner is running")
-	
-	devices = []
-	
-	zones = config.get(CONF_ZONES)
-	power_target = config.get(CONF_TARGET)
-	for key in zones:
-		devices.append(SpeakercraftMediaPlayer(hass, zones[key], sc.zones[key], config.get(CONF_SOURCES), config.get(CONF_DEFAULT_SOURCE), config.get(CONF_DEFAULT_VOLUME), power_target))
-
-	print("SC Adding Entities")
-	async_add_entities(devices)
-	print("SC Entities Added")
-	print("SC Complete Setup")
-
 
 
 class SpeakercraftMediaPlayer(MediaPlayerEntity):
 	"""Representation of a Spreakercraft Zone."""
 
-	def __init__(self, hass, name, scz, sources, default_source, default_volume, power_target):
+	def __init__(self, hass: HomeAssistant, name: str, scz: SpeakerCraftZ, sources, default_source, default_volume, power_target):
 		"""Initialize the zone device."""
 		super().__init__()
 
