@@ -351,10 +351,9 @@ class SpeakerCraft:
 				temp = await reader.readexactly(1)
 				if temp == b'\x11':
 					if self.commandqueue:
-						if self._writer.at_eof()
-							command=self.commandqueue[0]
-							_LOGGER.warn("Sending Command " + bytes(command).hex())
-							self._writer.write(command)
+						command=self.commandqueue[0]
+						_LOGGER.warn("Sending Command " + bytes(command).hex())
+						self._writer.write(command)
 						#send commands
 				elif temp == b'\x13':    
 					pass
