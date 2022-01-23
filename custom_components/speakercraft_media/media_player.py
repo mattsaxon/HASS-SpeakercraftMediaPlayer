@@ -9,6 +9,7 @@ import homeassistant.helpers.config_validation as cv
 import homeassistant.components as core
 from homeassistant.core import split_entity_id, HomeAssistant
 from homeassistant.components.media_player import PLATFORM_SCHEMA, MediaPlayerEntity
+
 from . import DOMAIN
 
 from homeassistant.components.media_player.const import (
@@ -206,7 +207,7 @@ class SpeakerCraftZ:
 		checksum = calc_checksum(command)
 		command.append(checksum)
 		await self._send_command(command)
-		_LOGGER.warn("Zone " + str(self.zone) + " Command Enqueued " + str(bytes(command).hex()))
+		_LOGGER.debug("Zone " + str(self.zone) + " Command Enqueued " + str(bytes(command).hex()))
 
 	async def cmdinitialise(self):
 		_LOGGER.info("Zone " + str(self.zone) + " Request Info")
@@ -225,12 +226,12 @@ class SpeakerCraftZ:
 		await self.queuecommand(data)
 
 	async def cmdvolumeDB(self, volumedb):
-		_LOGGER.warn("Zone " + str(self.zone) + " Volume " + str(volumedb))
+		_LOGGER.info("Zone " + str(self.zone) + " Volume " + str(volumedb))
 		data = bytearray([0x55, 0x08, 0x57, 0x00, 0x00, 0x05, volumedb, self.zoneid])
 		await self.queuecommand(data)
 
 	async def cmdvolume(self, volume):
-		_LOGGER.warn("Zone " + str(self.zone) + " Volume% " + str(volume))
+		_LOGGER.info("Zone " + str(self.zone) + " Volume% " + str(volume))
 		volumeDB = volumetodb[volume]
 		await self.cmdvolumeDB(volumeDB)
 		
@@ -335,7 +336,7 @@ class SpeakerCraft:
 
 
 	async def send_command(self, command: bytes):
-			_LOGGER.warn("Adding Command To Queue " + bytes(command).hex())
+			_LOGGER.debug("Adding Command To Queue " + bytes(command).hex())
 			self.commandqueue.append(command)
 			#await self.send_command_write()
 			
@@ -352,7 +353,7 @@ class SpeakerCraft:
 				if temp == b'\x11':
 					if self.commandqueue:
 						command=self.commandqueue[0]
-						_LOGGER.warn("Sending Command " + bytes(command).hex())
+						_LOGGER.debug("Sending Command " + bytes(command).hex())
 						self._writer.write(command)
 						#send commands
 				elif temp == b'\x13':    
@@ -397,11 +398,11 @@ class SpeakerCraft:
 			await self.zones[zoneid].updatezone(data)
 
 		elif  data[0] == 0x55 and data[2] == 0x95 and data[4] == 0x01:
-			_LOGGER.warn("Confirmation " + bytes.hex(data))
+			_LOGGER.debug("Confirmation " + bytes.hex(data))
 			self.commandqueue.pop(0)
 
 		elif  data[0] == 0x55 and data[2] == 0x95 and data[4] == 0x00:
-			_LOGGER.warn("Command Unrecognised " + bytes.hex(data))
+			_LOGGER.debug("Command Unrecognised " + bytes.hex(data))
 			self.commandqueue.pop(0)
 
 		elif data[:3] == b'\x55\x08\x29':
@@ -522,6 +523,7 @@ class SpeakercraftMediaPlayer(MediaPlayerEntity):
 		attr["Treble"] = str(self._zone.treble)
 		attr["Party Mode"] = self._zone.partymode
 		attr["Party Master"] = self._zone.partymaster
+		attr["Volume DB"] = self._zone.volumeDB
 		return attr
 
 		
