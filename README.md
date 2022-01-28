@@ -36,3 +36,14 @@ This can be used as an overall indicator of state by using an [input_boolean](ht
 ## Party Mode
 
 A switch is added for each zones for "Party Mode", the entity name is the name of the zone suffixed with "_party"
+
+## Logging
+
+If you are having issues or want to see how the component works, you can enable logging for this integration to configuration.yaml with sonething similar to as follows
+
+```
+logger:
+  default: warn
+  logs:
+    custom_components.speakercraft_media: debug
+```
