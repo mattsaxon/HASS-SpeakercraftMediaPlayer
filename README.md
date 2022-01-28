@@ -25,10 +25,6 @@ speakercraft_media:
         default_volume: 20
         default_source: 5
         power_target: switch.speakercraft
-        
-        
-switch:
-      - platform: speaercraft_media
 ```
 
 ## Master Switch
@@ -39,4 +35,4 @@ This can be used as an overall indicator of state by using an [input_boolean](ht
 
 ## Party Mode
 
-The switch platfrom add a "Party Mode" switch per zone with the name of the zone suffixed with "_party"
+A switch is added for each zones for "Party Mode", the entity name is the name of the zone suffixed with "_party"
