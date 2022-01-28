@@ -146,6 +146,11 @@ class SpeakerCraftZ:
 
 	async def cmdpartymode(self, on: bool):
 		_LOGGER.info("Zone " + str(self.zone) + " PartyMode " + str(on))
+
+		# If we are turning party mode on, the zone must be on first
+		if on and self.power != "On":
+			await self.cmdpoweron()
+
 		data = bytearray([0x55, 0x05, 0xA2, int(on), self.zoneid])
 		await self.queuecommand(data)
 
@@ -285,7 +290,7 @@ class SpeakerCraft:
 			self.commandqueue.pop(0)
 
 		elif  data[0] == 0x55 and data[2] == 0x95 and data[4] == 0x00:
-			_LOGGER.debug("Command Unrecognised " + bytes.hex(data))
+			_LOGGER.error("Command Unacknowledged " + bytes.hex(data))
 			self.commandqueue.pop(0)
 
 		elif data[:3] == b'\x55\x08\x29':
