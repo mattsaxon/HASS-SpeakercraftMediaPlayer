@@ -7,8 +7,7 @@ Repository created for install via [HACS](https://hacs.xyz/docs/setup/download) 
 ## Example Configuration.yaml
 
 ```
-media_player:
-      - platform: speakercraft_media
+speakercraft_media:
         zones: 
           1: "Lounge Speakers"
           2: "Kitchen Speakers"
