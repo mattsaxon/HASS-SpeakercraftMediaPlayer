@@ -1,4 +1,6 @@
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/mattsaxon/HASS-SpeakercraftMediaPlayer)
 # HASS-SpeakercraftMediaPlayer
+
 Speakercraft MZC Platform for Home Assistant
 
 Repository created for install via [HACS](https://hacs.xyz/docs/setup/download) based on code by [@sjeffrey101](https://github.com/sjeffrey101) [here](https://github.com/sjeffrey101/homeassistant_speakercraft/tree/main/old%20ha%20component/custom_components/speakercraft_media)
