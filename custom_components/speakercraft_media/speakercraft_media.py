@@ -1,6 +1,7 @@
 import logging
 import serial_asyncio
 import asyncio
+from serial import SerialException
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -216,10 +217,6 @@ class SpeakerCraft:
 	async def async_setup(self):
 		_LOGGER.debug("async_setup()")
 
-		self._reader = None # type: asyncio.StreamReader
-		self._writer = None # type: asyncio.StreamWriter
-		self._reader, self._writer = await serial_asyncio.open_serial_connection(loop=self._loop, url=self._comport, baudrate=57600, xonxoff=False)
-		#self._writer.transport.set_write_buffer_limits(0,0)
 		self._runner = self._loop.create_task(self.async_serialrunner())
 
 
@@ -231,9 +228,18 @@ class SpeakerCraft:
 			
 	async def async_serialrunner(self):
 		_LOGGER.debug("async_serialrunner()")
-		reader = self._reader
+
+		self._reader = None # type: asyncio.StreamReader
+		self._writer = None # type: asyncio.StreamWriter
 
 		while True:
+
+			if self._reader is None:
+				_LOGGER.debug("opening serial")
+				self._reader, self._writer = await serial_asyncio.open_serial_connection(loop=self._loop, url=self._comport, baudrate=57600, xonxoff=False)
+				_LOGGER.debug("serial open")
+				reader = self._reader
+
 
 			try:
 				#temp = await reader.readuntil(b'\x55')
@@ -271,8 +277,14 @@ class SpeakerCraft:
 
 				else:
 					_LOGGER.warn("throw away early trim " + bytes.hex(temp))
-			except EOFError:
-				_LOGGER.warn("EOF")
+
+			except SerialException as e:
+				_LOGGER.warn("Serial Exception: " + repr(e))		
+				Transport = self._writer.transport # type: serial_asyncio.SerialTransport
+				Transport.abort
+				self._reader = None
+				self._writer = None
+				await asyncio.sleep(1)
 			except asyncio.CancelledError:
 				break
 			except:
