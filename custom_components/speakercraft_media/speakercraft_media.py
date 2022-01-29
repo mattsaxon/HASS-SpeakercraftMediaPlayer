@@ -86,65 +86,65 @@ class SpeakerCraftZ:
 				await callback()
 
 
-	async def queuecommand(self, command: bytes):
+	def queuecommand(self, command: bytes):
 		checksum = calc_checksum(command)
 		command.append(checksum)
-		await self._send_command(command)
+		self._send_command(command)
 		_LOGGER.debug("Zone " + str(self.zone) + " Command Enqueued " + str(bytes(command).hex()))
 
-	async def cmdinitialise(self):
+	def cmdinitialise(self):
 		_LOGGER.info("Zone " + str(self.zone) + " Request Info")
 		data = bytearray([0x55, 0x04, 0x68, self.zoneid])
 	  #  data = bytearray([0x55, 0x03, 0x41])
-		await self.queuecommand(data)
+		self.queuecommand(data)
 	
-	async def cmdpoweron(self):
+	def cmdpoweron(self):
 		_LOGGER.info("Zone " + str(self.zone) + " Power On")
 		data = bytearray([0x55, 0x04, 0xA0, self.zoneid])
-		await self.queuecommand(data)
+		self.queuecommand(data)
 		
-	async def cmdpoweroff(self):
+	def cmdpoweroff(self):
 		_LOGGER.info("Zone " + str(self.zone) + " Power Off")
 		data = bytearray([0x55, 0x04, 0xA1, self.zoneid])
-		await self.queuecommand(data)
+		self.queuecommand(data)
 
-	async def cmdvolumeDB(self, volumedb):
+	def cmdvolumeDB(self, volumedb):
 		_LOGGER.info("Zone " + str(self.zone) + " Volume " + str(volumedb))
 		data = bytearray([0x55, 0x08, 0x57, 0x00, 0x00, 0x05, volumedb, self.zoneid])
-		await self.queuecommand(data)
+		self.queuecommand(data)
 
-	async def cmdvolume(self, volume):
+	def cmdvolume(self, volume):
 		_LOGGER.info("Zone " + str(self.zone) + " Volume% " + str(volume))
 		volumeDB = volumetodb[volume]
-		await self.cmdvolumeDB(volumeDB)
+		self.cmdvolumeDB(volumeDB)
 		
-	async def cmdmute(self):
+	def cmdmute(self):
 		_LOGGER.info("Zone " + str(self.zone) + " Mute")
 		data = bytearray([0x55, 0x08, 0x57, 0x00, 0x00, 0x04, 0x00, self.zoneid])
-		await self.queuecommand(data)
+		self.queuecommand(data)
 
-	async def cmdunmute(self):
+	def cmdunmute(self):
 		_LOGGER.info("Zone " + str(self.zone) + " UnMute")
 		data = bytearray([0x55, 0x08, 0x57, 0x00, 0x00, 0x03, 0x00, self.zoneid])
-		await self.queuecommand(data)
+		self.queuecommand(data)
 
-	async def cmdvolumeup(self):
+	def cmdvolumeup(self):
 		_LOGGER.info("Zone " + str(self.zone) + " Volume Up")
 		data = bytearray([0x55, 0x08, 0x57, 0x00, 0x00, 0x01, 0x00, self.zoneid])
-		await self.queuecommand(data)
+		self.queuecommand(data)
 
-	async def cmdvolumedown(self):
+	def cmdvolumedown(self):
 		_LOGGER.info("Zone " + str(self.zone) + " Volume Down")
 		data = bytearray([0x55, 0x08, 0x57, 0x00, 0x00, 0x00, 0x00, self.zoneid])
-		await self.queuecommand(data)
+		self.queuecommand(data)
 
-	async def cmdsource(self, source):
+	def cmdsource(self, source):
 		_LOGGER.info("Zone " + str(self.zone) + " Source " + str(source))
 		source = source - 1
 		data = bytearray([0x55, 0x05, 0xA3, self.zoneid, source])
-		await self.queuecommand(data)
+		self.queuecommand(data)
 
-	async def cmdpartymode(self, on: bool):
+	def cmdpartymode(self, on: bool):
 		_LOGGER.info("Zone " + str(self.zone) + " PartyMode " + str(on))
 
 		# If we are turning party mode on, the zone must be on first
@@ -152,7 +152,7 @@ class SpeakerCraftZ:
 			await self.cmdpoweron()
 
 		data = bytearray([0x55, 0x05, 0xA2, int(on), self.zoneid])
-		await self.queuecommand(data)
+		self.queuecommand(data)
 
 	async def masteroff(self, update):
 		self.masterpower = "Off"
@@ -223,7 +223,7 @@ class SpeakerCraft:
 		self._runner = self._loop.create_task(self.async_serialrunner())
 
 
-	async def send_command(self, command: bytes):
+	def send_command(self, command: bytes):
 			_LOGGER.debug("Adding Command To Queue " + bytes(command).hex())
 			self.commandqueue.append(command)
 			#await self.send_command_write()
@@ -294,6 +294,7 @@ class SpeakerCraft:
 			self.commandqueue.pop(0)
 
 		elif data[:3] == b'\x55\x08\x29':
-			_LOGGER.debug("Tuner message, unprocessed " + bytes.hex(data))
+			pass
+			#_LOGGER.debug("Tuner message, unprocessed " + bytes.hex(data))
 		else:
 			_LOGGER.warn("Unknown " + bytes.hex(data))

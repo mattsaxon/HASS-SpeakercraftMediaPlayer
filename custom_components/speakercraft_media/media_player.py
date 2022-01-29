@@ -180,15 +180,15 @@ class SpeakercraftMediaPlayer(MediaPlayerEntity):
 
 		
 	async def async_turn_off(self):
-		await self._zone.cmdpoweroff()
+		self._zone.cmdpoweroff()
 		if self._default_volume > 0:
-			await self._zone.cmdvolume(self._default_volume)
+			self._zone.cmdvolume(self._default_volume)
 		
 	async def async_turn_on(self):
 		if self._default_source > 0:
-			await self._zone.cmdsource(self._default_source)
+			self._zone.cmdsource(self._default_source)
 		else:
-			await self._zone.cmdpoweron()
+			self._zone.cmdpoweron()
 
 		if self._power_target:
 			if not core.is_on(self._hass, self._power_target):
@@ -198,22 +198,22 @@ class SpeakercraftMediaPlayer(MediaPlayerEntity):
 
 	async def async_set_volume_level(self, volume):
 		volumepc = 100.00 * volume 
-		await self._zone.cmdvolume(int(volumepc))
+		self._zone.cmdvolume(int(volumepc))
 
 	async def async_select_source(self, source):
 		"""Set the input source."""
 		if source in self._source_list:
 			source = self._source_reverse[source]
-			await self._zone.cmdsource(source)
+			self._zone.cmdsource(source)
 			
 	async def async_mute_volume(self, mute):
 		if mute:
-			await self._zone.cmdmute()
+			self._zone.cmdmute()
 		else:
-			await self._zone.cmdunmute()
+			self._zone.cmdunmute()
 		
 	async def async_volume_up(self):
-		await self._zone.cmdvolumeup()
+		self._zone.cmdvolumeup()
 
 	async def async_volume_down(self):
-		await self._zone.cmdvolumedown()
+		self._zone.cmdvolumedown()
