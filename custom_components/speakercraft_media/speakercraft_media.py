@@ -285,12 +285,13 @@ class SpeakerCraft:
 			zoneid = data[3] + 1
 			await self.zones[zoneid].updatezone(data)
 
-		elif  data[0] == 0x55 and data[2] == 0x95 and data[4] == 0x01:
-			_LOGGER.debug("Confirmation " + bytes.hex(data))
-			self.commandqueue.pop(0)
+		elif  data[0] == 0x55 and data[2] == 0x95:			
+			if data[4] == 0x01:
+				_LOGGER.debug("Confirmation " + bytes.hex(data))
 
-		elif  data[0] == 0x55 and data[2] == 0x95 and data[4] == 0x00:
-			_LOGGER.error("Command Unacknowledged " + bytes.hex(data))
+			elif data[4] == 0x00:
+				_LOGGER.error("Command Unacknowledged " + bytes.hex(data))
+			
 			self.commandqueue.pop(0)
 
 		elif data[:3] == b'\x55\x08\x29':
