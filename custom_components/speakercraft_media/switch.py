@@ -60,11 +60,11 @@ class SpeakercraftPartyModeSwitch(SwitchEntity):
 
 	async def async_turn_on(self, **kwargs) -> None:
 		_LOGGER.debug("Party Mode On Zone " + str(self._zone.zone))
-		await self._zone.cmdpartymode(True)
+		self._zone.cmdpartymode(True)
 
 	async def async_turn_off(self, **kwargs) -> None:
 		_LOGGER.debug("Party Mode Off Zone " + str(self._zone.zone))
-		await self._zone.cmdpartymode(False)
+		self._zone.cmdpartymode(False)
 
 	async def updatecallback(self):
 		_LOGGER.debug("updatecallback Zone " + str(self._zone.zone))

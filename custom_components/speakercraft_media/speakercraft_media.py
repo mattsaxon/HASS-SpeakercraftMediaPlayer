@@ -149,7 +149,7 @@ class SpeakerCraftZ:
 
 		# If we are turning party mode on, the zone must be on first
 		if on and self.power != "On":
-			await self.cmdpoweron()
+			self.cmdpoweron()
 
 		data = bytearray([0x55, 0x05, 0xA2, int(on), self.zoneid])
 		self.queuecommand(data)
