@@ -76,7 +76,7 @@ class shareddata():
 	
 async def async_setup(hass, config):
     
-    _LOGGER.warn("setup() entry")
+    _LOGGER.debug("setup() entry")
 
     #config = config[DOMAIN]
 
