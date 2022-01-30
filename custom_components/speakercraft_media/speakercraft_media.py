@@ -26,10 +26,10 @@ class SpeakerCraftZ:
 
 
 
-	def __init__(self, zone, send_command, poweroffcb):
+	def __init__(self, zone, queuecommand):
 		self.zone = int(zone)
 		self.zoneid = int(zone) - 1
-		self._send_command = send_command
+		self._queuecommand = queuecommand
 		self.power = "Off"
 		self.volume = 0
 		self.volumeDB = 0
@@ -39,10 +39,9 @@ class SpeakerCraftZ:
 		self.bass = 0
 		self.treble = 0
 		self.callbacks = []
-		self.masterpower = "Off"
 		self.partymaster = False # type: bool
 		self.partymode = False # Type: bool
-		self._poweroffcb = poweroffcb
+
 
 
 
@@ -56,10 +55,8 @@ class SpeakerCraftZ:
 			#status
 			if getbit(flags, 1) == True:
 				self.power = "On"
-				self.masterpower = "On"
 			else:
 				self.power = "Off"
-				await self._poweroffcb(self.zone)
 
 			self.volumeDB = status[10]
 			self.volume = status[7]
@@ -87,32 +84,28 @@ class SpeakerCraftZ:
 				await callback()
 
 
-	def queuecommand(self, command: bytes):
-		checksum = calc_checksum(command)
-		command.append(checksum)
-		self._send_command(command)
-		_LOGGER.debug("Zone " + str(self.zone) + " Command Enqueued " + str(bytes(command).hex()))
+
 
 	def cmdinitialise(self):
 		_LOGGER.info("Zone " + str(self.zone) + " Request Info")
 		data = bytearray([0x55, 0x04, 0x68, self.zoneid])
 	  #  data = bytearray([0x55, 0x03, 0x41])
-		self.queuecommand(data)
+		self._queuecommand(data)
 	
 	def cmdpoweron(self):
 		_LOGGER.info("Zone " + str(self.zone) + " Power On")
 		data = bytearray([0x55, 0x04, 0xA0, self.zoneid])
-		self.queuecommand(data)
+		self._queuecommand(data, True)
 		
 	def cmdpoweroff(self):
 		_LOGGER.info("Zone " + str(self.zone) + " Power Off")
 		data = bytearray([0x55, 0x04, 0xA1, self.zoneid])
-		self.queuecommand(data)
+		self._queuecommand(data)
 
 	def cmdvolumeDB(self, volumedb):
 		_LOGGER.info("Zone " + str(self.zone) + " Volume " + str(volumedb))
 		data = bytearray([0x55, 0x08, 0x57, 0x00, 0x00, 0x05, volumedb, self.zoneid])
-		self.queuecommand(data)
+		self._queuecommand(data)
 
 	def cmdvolume(self, volume):
 		_LOGGER.info("Zone " + str(self.zone) + " Volume% " + str(volume))
@@ -122,28 +115,28 @@ class SpeakerCraftZ:
 	def cmdmute(self):
 		_LOGGER.info("Zone " + str(self.zone) + " Mute")
 		data = bytearray([0x55, 0x08, 0x57, 0x00, 0x00, 0x04, 0x00, self.zoneid])
-		self.queuecommand(data)
+		self._queuecommand(data)
 
 	def cmdunmute(self):
 		_LOGGER.info("Zone " + str(self.zone) + " UnMute")
 		data = bytearray([0x55, 0x08, 0x57, 0x00, 0x00, 0x03, 0x00, self.zoneid])
-		self.queuecommand(data)
+		self._queuecommand(data)
 
 	def cmdvolumeup(self):
 		_LOGGER.info("Zone " + str(self.zone) + " Volume Up")
 		data = bytearray([0x55, 0x08, 0x57, 0x00, 0x00, 0x01, 0x00, self.zoneid])
-		self.queuecommand(data)
+		self._queuecommand(data)
 
 	def cmdvolumedown(self):
 		_LOGGER.info("Zone " + str(self.zone) + " Volume Down")
 		data = bytearray([0x55, 0x08, 0x57, 0x00, 0x00, 0x00, 0x00, self.zoneid])
-		self.queuecommand(data)
+		self._queuecommand(data)
 
 	def cmdsource(self, source):
 		_LOGGER.info("Zone " + str(self.zone) + " Source " + str(source))
 		source = source - 1
 		data = bytearray([0x55, 0x05, 0xA3, self.zoneid, source])
-		self.queuecommand(data)
+		self._queuecommand(data, True)
 
 	def cmdpartymode(self, on: bool):
 		_LOGGER.info("Zone " + str(self.zone) + " PartyMode " + str(on))
@@ -153,21 +146,8 @@ class SpeakerCraftZ:
 			self.cmdpoweron()
 
 		data = bytearray([0x55, 0x05, 0xA2, int(on), self.zoneid])
-		self.queuecommand(data)
+		self._queuecommand(data)
 
-	async def masteroff(self, update):
-		self.masterpower = "Off"
-		if update==True:
-			_LOGGER.info("Zone " + str(self.zone) + " Off, calling update callback")
-			for callback in self.callbacks:
-				await callback()
-
-	async def masteron(self, update):
-		self.masterpower = "On"
-		if update==True:
-			_LOGGER.info("Zone " + str(self.zone) + " On, calling update callback")
-			for callback in self.callbacks:
-				await callback()
 
 			
 	def addcallback(self, callback):
@@ -176,6 +156,117 @@ class SpeakerCraftZ:
 	def removecallback(self, callback):
 		self.callbacks.remove(callback)
 
+class SpeakerCraftC:
+
+
+
+	def __init__(self, queuecommand, zones):
+
+		self.previousinfo = ""
+		self.callbacks = []
+		self._queuecommand = queuecommand
+		
+		self.numberofzones = 0
+		self.model= "Unknown"
+		self.version = "Unknown"
+		
+		self.power = "Off"
+		self.zoneson = 0
+		self._zones = zones
+		self.firstzonerequested=False
+		self.cmdinitialise()
+
+
+	async def updateinfo(self, status):
+		
+		if status != self.previousinfo:
+
+			_LOGGER.debug("controller device info message " + bytes.hex(status))
+			
+			if status[5] == 0x04:
+				self.model = "Speakercraft MZC 64"
+				self.numberofzones = 4
+			elif status[5] == 0x05:
+				self.model = "Speakercraft MZC 66"
+				self.numberofzones = 6
+			elif status[5] == 0x06:
+				self.model = "Speakercraft MZC 88"
+				self.numberofzones = 8
+			
+			version = ""
+			
+			for x in range(8, len(status) - 1):
+				version = version + chr(status[x])
+			self.version = version
+			
+			self.previousinfo = status
+
+			
+			_LOGGER.info("Controller Info " + self.model + " Max Zones " + str(self.numberofzones) + " Version " + version)
+			
+
+			for callback in self.callbacks:
+				await callback()
+
+	def zonepowerrequested(self):
+		#_LOGGER.debug("Controller zonepowerrequested")	
+		if self.power == "Off":
+			self.firstzonerequested = True
+			_LOGGER.debug("Controller First Zone Requested")	
+			for callback in self.callbacks:
+				loop = asyncio.get_running_loop()
+				ret = loop.create_task(callback())
+
+	async def updatezones(self):
+		#_LOGGER.debug("Controller updating zones")
+		changed = False
+		power = "Off"
+		zoneson = 0
+		
+		for x in self._zones:
+			#_LOGGER.debug("Controller Found zone " + str(x) + " "  + self._zones[x].power)
+			if self._zones[x].power == "On":
+				power = "On"
+				zoneson=zoneson + 1
+				_LOGGER.debug("Controller Found zone " + str(x) + " On")
+				
+		if self.power != power:
+			self.power = power
+			changed=True
+			
+		
+		if self.zoneson != zoneson:
+			_LOGGER.debug("Controller Found " + str(zoneson) + " zones on")	
+			self.zoneson = zoneson
+			changed=True
+			
+		if self.firstzonerequested and self.power == "On":
+			_LOGGER.debug("Controller First Zone Requested Off")	
+			self.firstzonerequested = False
+			changed=True
+		
+		if changed:
+			for callback in self.callbacks:
+				await callback()
+
+
+	def cmdinitialise(self):
+		_LOGGER.info("Controller Request Info")
+		data = bytearray([0x55, 0x03, 0x41])
+		self._queuecommand(data)
+	
+	def cmdalloff(self):
+		_LOGGER.info("Controller All Zones Power Off")
+		data = bytearray([0x55, 0x04, 0xA1, 0xFF])
+		self._queuecommand(data)
+		
+
+			
+	def addcallback(self, callback):
+		self.callbacks.append(callback)
+
+	def removecallback(self, callback):
+		self.callbacks.remove(callback)
 
 
 class SpeakerCraft:
@@ -191,27 +282,10 @@ class SpeakerCraft:
 		self.commandqueue = []
 		self.continuerunning = 1
 
-		
+		self.controller = SpeakerCraftC(self.queuecommand, self.zones)
 		for x in range(1, 9):
-			self.zones[x] = SpeakerCraftZ(x, self.send_command, self.checkmasterpower)
-
-
-	async def checkmasterpower(self, zone):
-		alloff = True
-		for x in range(1, 9):
-			if self.zones[x].power == "On":
-				alloff = False
-		for x in range(1, 9):
-			if x == zone:
-				update = True
-			else:
-				update = False
-			if alloff == True:
-				_LOGGER.info("All Off Zone " + str(zone) + ": " + str(x) + " Update Front-End " + str(update))
-				await self.zones[zone].masteroff(update)
-			else:
-				_LOGGER.info("Not All Off Zone " + str(zone) + " Update " + str(update))
-				await self.zones[zone].masteron(update)
+			self.zones[x] = SpeakerCraftZ(x, self.queuecommand)
+			self.zones[x].addcallback(self.controller.updatezones)
 
 
 	async def async_setup(self):
@@ -220,12 +294,16 @@ class SpeakerCraft:
 		self._runner = self._loop.create_task(self.async_serialrunner())
 
 
-	def send_command(self, command: bytes):
-			_LOGGER.debug("Adding Command To Queue " + bytes(command).hex())
-			self.commandqueue.append(command)
-			#await self.send_command_write()
-			
-			
+	def queuecommand(self, command: bytes, powerrequest=False):
+		checksum = calc_checksum(command)
+		command.append(checksum)
+		self.commandqueue.append(command)
+		if powerrequest:
+			self.controller.zonepowerrequested()
+		
+		_LOGGER.debug("Command Enqueued " + str(bytes(command).hex()))
+
+
 	async def async_serialrunner(self):
 		_LOGGER.debug("async_serialrunner()")
 
@@ -301,10 +379,14 @@ class SpeakerCraft:
 			if data[4] == 0x01:
 				_LOGGER.debug("Confirmation " + bytes.hex(data))
 
+				if data[3] == 0x41:
+					await self.controller.updateinfo(data)
+
 			elif data[4] == 0x00:
 				_LOGGER.error("Command Unacknowledged " + bytes.hex(data))
 			
-			self.commandqueue.pop(0)
+			if self.commandqueue:
+				self.commandqueue.pop(0)
 
 		elif data[:3] == b'\x55\x08\x29':
 			pass

@@ -1,5 +1,6 @@
 """The speakercraft media player component."""
 import logging
+import asyncio
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.typing import ConfigType
@@ -8,10 +9,22 @@ from homeassistant.helpers import discovery
 from homeassistant.const import CONF_HOST, CONF_NAME, Platform
 from .speakercraft_media import SpeakerCraft, SpeakerCraftZ
 from homeassistant import config_entries
-
+import homeassistant.components as core
+from homeassistant.core import split_entity_id, HomeAssistant
 
 import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
+
+
+from homeassistant.const import (
+	ATTR_ID,
+	ATTR_ENTITY_ID,
+	STATE_OFF,
+	STATE_ON,
+	CONF_NAME,
+	SERVICE_TURN_OFF,
+	SERVICE_TURN_ON,
+)
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -75,24 +88,84 @@ class shareddata():
 	
 	
 async def async_setup(hass, config):
-    
-    _LOGGER.debug("setup() entry")
-
-    #config = config[DOMAIN]
-
-    # Data that you want to share with your platforms
-    hass.data[DOMAIN] = shareddata
-    hass.data[DOMAIN].zones = None
-    hass.data[DOMAIN].config = config[DOMAIN]
 	
-    sc = SpeakerCraft(hass.loop, config[DOMAIN].get(CONF_SERIAL_PORT))
-    hass.data[DOMAIN].sc = sc
-    await sc.async_setup()
+	_LOGGER.debug("setup() entry")
+
+	#config = config[DOMAIN]
+
+	# Data that you want to share with your platforms
+	hass.data[DOMAIN] = shareddata
+	hass.data[DOMAIN].zones = None
+	hass.data[DOMAIN].config = config[DOMAIN]
+	
+	sc = SpeakerCraft(hass.loop, config[DOMAIN].get(CONF_SERIAL_PORT))
+	hass.data[DOMAIN].sc = sc
+	await sc.async_setup()
+
+	
+
+	hass.helpers.discovery.load_platform('media_player', DOMAIN, {}, config)
+	hass.helpers.discovery.load_platform('switch', DOMAIN, {}, config)
+
+	
+	power_target = config[DOMAIN].get(CONF_TARGET)
+	hass.data[DOMAIN].power_target = power_target 
+	if power_target:
+		_LOGGER.debug("Power Target Exists - Setting up power handler")
+		hass.data[DOMAIN].power_handler = powerhandler(hass, sc, power_target)
+	else:
+		_LOGGER.debug("No Power Target Exists")
+
+	_LOGGER.debug("setup() exit")
+
+	return True
+
+class powerhandler():
+	
+	def __init__(self, hass, sc, power_target):
+		_LOGGER.debug("Power Handler Initialising")
+		self._hass = hass
+		self.power_target = power_target
+		self.controller = sc.controller
+		self.controller.addcallback(self.powerupdate)
+		
+		self.turnofftask = None
+		_LOGGER.debug("Power Handler Initialised")
+		
+		
+	async def powerupdate(self):
+		_LOGGER.debug("Power Handler Callback")
+
+		controller = self.controller
+		power_target = self.power_target
 
 
-    hass.helpers.discovery.load_platform('media_player', DOMAIN, {}, config)
-    hass.helpers.discovery.load_platform('switch', DOMAIN, {}, config)
+		if controller.firstzonerequested and not core.is_on(self._hass, power_target):
+			_LOGGER.debug("Power Handler Turning on " + power_target)
+			domain = split_entity_id(power_target)[0]
+			data = {ATTR_ENTITY_ID: power_target}
+			await self._hass.services.async_call(domain, SERVICE_TURN_ON, data)
+		elif controller.firstzonerequested and self.turnofftask is not None:
+			_LOGGER.debug("Power Handler Turning Off " + power_target + " task cancelled")
+			self.turnofftask.cancel()
+			self.turnofftask = None
+		elif controller.power=="Off" and core.is_on(self._hass, power_target) and self.turnofftask is None:
+			_LOGGER.debug("Power Handler Turning Off " + power_target + " task create")
+			self.turnofftask = asyncio.create_task(self.turnoff())
 
-    _LOGGER.debug("setup() exit")
-
-    return True
+	
+	async def turnoff(self):
+			power_target = self.power_target
+			_LOGGER.debug("Power Handler Turn off waiting " + power_target)
+			
+			await asyncio.sleep(60)
+			_LOGGER.debug("Power Handler Turn off waited " + power_target)
+			if self.controller.power=="Off":
+				_LOGGER.debug("Power Handler Turn turning off " + power_target)
+				domain = split_entity_id(power_target)[0]
+				data = {ATTR_ENTITY_ID: power_target}
+				await self._hass.services.async_call(domain, SERVICE_TURN_OFF, data)
+			else:
+				_LOGGER.debug("Power Handler Turn turning off cancelled as zone on " + power_target)
+			
+			self.turnofftask = None
