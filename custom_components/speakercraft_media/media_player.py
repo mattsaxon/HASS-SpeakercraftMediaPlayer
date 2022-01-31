@@ -53,9 +53,9 @@ async def async_setup_platform(hass: HomeAssistant, config, async_add_entities, 
 	_LOGGER.debug(str(_config))
 	zones = _config.get(CONF_ZONES)
 	hass.data[DOMAIN].zones = zones
-	power_target = _config.get(CONF_TARGET)
+	
 	for key in zones:
-		devices.append(SpeakercraftMediaPlayer(hass, zones[key], sc.zones[key], _config.get(CONF_SOURCES), _config.get(CONF_DEFAULT_SOURCE), _config.get(CONF_DEFAULT_VOLUME), power_target))
+		devices.append(SpeakercraftMediaPlayer(hass, zones[key], sc.zones[key], _config.get(CONF_SOURCES), _config.get(CONF_DEFAULT_SOURCE), _config.get(CONF_DEFAULT_VOLUME)))
 
 	_LOGGER.debug("SC Adding Entities")
 	async_add_entities(devices)
@@ -67,7 +67,7 @@ async def async_setup_platform(hass: HomeAssistant, config, async_add_entities, 
 class SpeakercraftMediaPlayer(MediaPlayerEntity):
 	"""Representation of a Spreakercraft Zone."""
 
-	def __init__(self, hass: HomeAssistant, name: str, scz: SpeakerCraftZ, sources, default_source, default_volume, power_target):
+	def __init__(self, hass: HomeAssistant, name: str, scz: SpeakerCraftZ, sources, default_source, default_volume):
 		"""Initialize the zone device."""
 		super().__init__()
 
@@ -80,23 +80,10 @@ class SpeakercraftMediaPlayer(MediaPlayerEntity):
 		self._zone = scz
 		self._default_source = default_source
 		self._default_volume = default_volume
-		self._power_target = power_target
 
 	async def updatecallback(self):
 		_LOGGER.debug("updatecallback Zone " + str(self._zone.zone))
-		await self.checkalloff()
 		self.schedule_update_ha_state()
- 
-	async def checkalloff(self):
-		_LOGGER.debug("checkalloff Zone " + str(self._zone.zone))
-		if self._zone.masterpower == "Off":
-			_LOGGER.info("master off")
-			if self._power_target:
-				if core.is_on(self._hass, self._power_target):
-					_LOGGER.debug("Switch is currently on, switch off")
-					domain = split_entity_id(self._power_target)[0]
-					data = {ATTR_ENTITY_ID: self._power_target}
-					await self._hass.services.async_call(domain, SERVICE_TURN_OFF, data)
 
 	async def async_added_to_hass(self):
 		self._zone.addcallback(self.updatecallback)
@@ -190,11 +177,6 @@ class SpeakercraftMediaPlayer(MediaPlayerEntity):
 		else:
 			self._zone.cmdpoweron()
 
-		if self._power_target:
-			if not core.is_on(self._hass, self._power_target):
-				domain = split_entity_id(self._power_target)[0]
-				data = {ATTR_ENTITY_ID: self._power_target}
-				await self._hass.services.async_call(domain, SERVICE_TURN_ON, data)
 
 	async def async_set_volume_level(self, volume):
 		volumepc = 100.00 * volume 
