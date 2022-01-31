@@ -41,7 +41,7 @@ A switch is added for each zones for "Party Mode", the entity name is the name o
 
 ## Logging
 
-If you are having issues or want to see how the component works, you can enable logging for this integration to configuration.yaml with sonething similar to as follows
+If you are having issues or want to see how the component works, you can enable logging for this integration to configuration.yaml with something similar to as follows
 
 ```
 logger:
