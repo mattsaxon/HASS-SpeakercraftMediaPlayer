@@ -76,9 +76,19 @@ class SpeakerCraftZ:
 			self.bass = status[8]
 			self.treble = status[9]
 			
+			if self.treble > 128:
+				self.treble = self.treble - 256
+			
+			if self.bass > 128:
+				self.bass = self.bass - 256
+			
+			self.bass = self.bass/2
+			self.treble = self.treble/2
+
+			
 			self.previousstatus = status
 			
-			_LOGGER.info("Status Update Zone " + str(self.zone) + " Power " + str(self.power) + " Volume " + str(self.volume) + " VolumeDB " + str(self.volumeDB) + " Source " + str(self.source))
+			_LOGGER.info("Status Update Zone " + str(self.zone) + " Power " + str(self.power) + " Volume " + str(self.volume) + " VolumeDB " + str(self.volumeDB) + " Source " + str(self.source) + " Bass " + str(self.bass) + " Treble " + str(self.treble))
 
 			for callback in self.callbacks:
 				await callback()
@@ -149,6 +159,65 @@ class SpeakerCraftZ:
 		self._queuecommand(data)
 
 
+	def cmdtreblelevel(self, level):
+		_LOGGER.info("Zone " + str(self.zone) + " Treble Level " + str(level))
+		
+		if level < 0:
+			level = 256 + level
+		
+		data = bytearray([0x55, 0x06, 0xA4, self.zoneid, 0x01, level])
+		self._queuecommand(data)
+
+	def cmdbasslevel(self, level):
+		_LOGGER.info("Zone " + str(self.zone) + " Bass Level " + str(level))
+		
+		if level < 0:
+			level = 256 + level
+		
+		data = bytearray([0x55, 0x06, 0xA4, self.zoneid, 0x00, level])
+		self._queuecommand(data)
+
+
+	def cmdbassflat(self):
+		_LOGGER.info("Zone " + str(self.zone) + " Bass Flat ")
+		
+		data = bytearray([0x55, 0x07, 0x58, 0x00, 0x00, 0x04, self.zoneid])
+		self._queuecommand(data)
+
+	def cmdtrebleflat(self):
+		_LOGGER.info("Zone " + str(self.zone) + " Treble Flat ")
+		
+		data = bytearray([0x55, 0x07, 0x58, 0x00, 0x00, 0x05, self.zoneid])
+		self._queuecommand(data)
+
+	def cmdbassdown(self):
+		_LOGGER.info("Zone " + str(self.zone) + " Bass Down ")
+		
+		data = bytearray([0x55, 0x07, 0x58, 0x00, 0x00, 0x00, self.zoneid])
+		self._queuecommand(data)
+
+	def cmdbassup(self):
+		_LOGGER.info("Zone " + str(self.zone) + " Bass Up ")
+		
+		data = bytearray([0x55, 0x07, 0x58, 0x00, 0x00, 0x02, self.zoneid])
+		self._queuecommand(data)
+
+	def cmdtrebledown(self):
+		_LOGGER.info("Zone " + str(self.zone) + " Treble Down ")
+		
+		data = bytearray([0x55, 0x07, 0x58, 0x00, 0x00, 0x01, self.zoneid])
+		self._queuecommand(data)
+
+	def cmdtrebleup(self):
+		_LOGGER.info("Zone " + str(self.zone) + " Treble Up ")
+		
+		data = bytearray([0x55, 0x07, 0x58, 0x00, 0x00, 0x03, self.zoneid])
+		self._queuecommand(data)
+		
+		
+		
+		
+		
 			
 	def addcallback(self, callback):
 		self.callbacks.append(callback)
