@@ -26,18 +26,22 @@ speakercraft_media:
           5: "Alexa"
         default_volume: 20
         default_source: 5
-        power_target: switch.speakercraft
+        power_target: switch.speakercraft # optional parameter for when powering the amplifier or associated equipment via a smart plug
 ```
 
-## Master Switch
-
+## Master Power
 As per above config, the entity ```switch.speakercraft``` should exist which functions as the main masteroff switch.
 
-This can be used as an overall indicator of state by using an [input_boolean](https://www.home-assistant.io/integrations/input_boolean/) or contol another switch, for example a smart plug which powers the Speakercraft amplifier.
+This is intended to be used to contol a smart plug powering the amplifier. This allows it to be turned on remotely and automatically turned off when all zone are off (60 second delay implemented)
+
+## All Off
+There is a button for turning all zone off
 
 ## Party Mode
-
 A switch is added for each zones for "Party Mode", the entity name is the name of the zone suffixed with "_party"
+
+## Tone
+There are buttons for bass/treble up/down and number sliders
 
 ## Logging
 
