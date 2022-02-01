@@ -107,6 +107,7 @@ async def async_setup(hass, config):
 	hass.helpers.discovery.load_platform('media_player', DOMAIN, {}, config)
 	hass.helpers.discovery.load_platform('switch', DOMAIN, {}, config)
 	hass.helpers.discovery.load_platform('button', DOMAIN, {}, config)
+	hass.helpers.discovery.load_platform('number', DOMAIN, {}, config)
 	
 	power_target = config[DOMAIN].get(CONF_TARGET)
 	hass.data[DOMAIN].power_target = power_target 
@@ -149,6 +150,10 @@ class powerhandler():
 			_LOGGER.debug("Power Handler Turning Off " + power_target + " task cancelled")
 			self.turnofftask.cancel()
 			self.turnofftask = None
+		elif controller.power=="On" and self.turnofftask is not None:
+			_LOGGER.debug("Power Handler Turning Off " + power_target + " task cancelled")
+			self.turnofftask.cancel()
+			self.turnofftask = None			
 		elif controller.power=="Off" and core.is_on(self._hass, power_target) and self.turnofftask is None:
 			_LOGGER.debug("Power Handler Turning Off " + power_target + " task create")
 			self.turnofftask = asyncio.create_task(self.turnoff())
