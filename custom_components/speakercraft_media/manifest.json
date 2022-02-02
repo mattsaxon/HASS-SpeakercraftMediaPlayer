@@ -3,7 +3,7 @@
   "name": "Speakercraft Media Player",
   "version": "0.1",
   "documentation": "https://github.com/mattsaxon/HASS-SpeakercraftMediaPlayer",
-  "documentation": "https://github.com/mattsaxon/HASS-SpeakercraftMediaPlayer/issues",
+  "issue_tracker": "https://github.com/mattsaxon/HASS-SpeakercraftMediaPlayer/issues",
   "dependencies": [],
   "codeowners": ["@mattsaxon", "@sjeffrey101"],
   "requirements": [],
