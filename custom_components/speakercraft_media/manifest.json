@@ -5,6 +5,5 @@
   "documentation": "https://github.com/mattsaxon/HASS-SpeakercraftMediaPlayer",
   "dependencies": [],
   "codeowners": ["@mattsaxon", "@sjeffrey101"],
-  "requirements": [],
-  "homeassistant": "2021.12.0"
+  "requirements": []
 }
