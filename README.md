@@ -5,6 +5,13 @@ Speakercraft MZC Platform for Home Assistant
 
 Repository created for install via [HACS](https://hacs.xyz/docs/setup/download) based on code by [@sjeffrey101](https://github.com/sjeffrey101) [here](https://github.com/sjeffrey101/homeassistant_speakercraft/tree/main/old%20ha%20component/custom_components/speakercraft_media)
 
+## Hardware set-up
+
+Desiged to be used via direct connection (using RS232) via the Control Port.
+
+Does not currently work via the RSA-1.0 interface.
+
+While this intregration is designed to work and allow replacement of the SpeakerCraft control panels, the zones do need to be set-up via EZ-tools for the integration to function.
 
 ## Example Configuration.yaml
 
