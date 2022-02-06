@@ -7,13 +7,13 @@ Repository created for install via [HACS](https://hacs.xyz/docs/setup/download) 
 
 ## Hardware set-up
 
-Desiged to be used via direct connection (using RS232) via the Control Port.
+Desiged to be used via direct connection (using RS232) via the MZC Control Port.
 
 MZC must be at firmware 2.2.8 (latest), if not flash it with EZ tools after downloading firmware from https://speakercraft.com/wp-content/uploads/tools/firmware_updater_03-02-11.exe
 
 Does not currently work via the RSA-1.0 interface.
 
-While this intregration is designed to work and allow replacement of the SpeakerCraft control panels, the zones do need to be set-up via EZ-tools for the integration to function.
+While this integration is designed to work and allow replacement of the SpeakerCraft control panels, the zones do need to be set-up via EZ-tools for the integration to function.
 
 ## Example Configuration.yaml
 
@@ -44,7 +44,7 @@ As per above config, the entity ```switch.speakercraft``` should exist which fun
 This is intended to be used to contol a smart plug powering the amplifier. This allows it to be turned on remotely and automatically turned off when all zone are off (60 second delay implemented)
 
 ## All Off
-There is a button for turning all zone off
+There is a button for turning all zones off
 
 ## Party Mode
 A switch is added for each zones for "Party Mode", the entity name is the name of the zone suffixed with "_party"
