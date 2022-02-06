@@ -9,6 +9,8 @@ Repository created for install via [HACS](https://hacs.xyz/docs/setup/download) 
 
 Desiged to be used via direct connection (using RS232) via the Control Port.
 
+MZC must be at firmware 2.2.8 (latest), if not flash it with EZ tools after downloading firmware from https://speakercraft.com/wp-content/uploads/tools/firmware_updater_03-02-11.exe
+
 Does not currently work via the RSA-1.0 interface.
 
 While this intregration is designed to work and allow replacement of the SpeakerCraft control panels, the zones do need to be set-up via EZ-tools for the integration to function.
