@@ -423,7 +423,7 @@ class SpeakerCraft:
 
 
 				else:
-					_LOGGER.warn("throw away early trim " + bytes.hex(temp))
+					_LOGGER.debug("throw away early trim " + bytes.hex(temp))
 
 			except SerialException as e:
 				_LOGGER.warn("Serial Exception: " + repr(e))		
