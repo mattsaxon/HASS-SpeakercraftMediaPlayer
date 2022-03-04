@@ -103,14 +103,18 @@ class SpeakerCraftZ:
 		self._queuecommand(data)
 	
 	def cmdpoweron(self):
-		_LOGGER.info("Zone " + str(self.zone) + " Power On")
-		data = bytearray([0x55, 0x04, 0xA0, self.zoneid])
-		self._queuecommand(data, True)
+
+		if self.power == "Off":
+			_LOGGER.info("Zone " + str(self.zone) + " Power On")
+			data = bytearray([0x55, 0x04, 0xA0, self.zoneid])
+			self._queuecommand(data, True)
 		
 	def cmdpoweroff(self):
-		_LOGGER.info("Zone " + str(self.zone) + " Power Off")
-		data = bytearray([0x55, 0x04, 0xA1, self.zoneid])
-		self._queuecommand(data)
+
+		if self.power == "On":
+			_LOGGER.info("Zone " + str(self.zone) + " Power Off")
+			data = bytearray([0x55, 0x04, 0xA1, self.zoneid])
+			self._queuecommand(data)
 
 	def cmdvolumeDB(self, volumedb):
 		_LOGGER.info("Zone " + str(self.zone) + " Volume " + str(volumedb))
