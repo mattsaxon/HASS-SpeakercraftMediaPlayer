@@ -1,3 +1,4 @@
+from distutils.log import WARN
 import logging
 import serial_asyncio
 import asyncio
@@ -376,6 +377,8 @@ class SpeakerCraft:
 	async def async_serialrunner(self):
 		_LOGGER.debug("async_serialrunner()")
 
+		self._throwawaylevel = logging.DEBUG
+
 		self._reader = None # type: asyncio.StreamReader
 		self._writer = None # type: asyncio.StreamWriter
 
@@ -423,7 +426,15 @@ class SpeakerCraft:
 
 
 				else:
-					_LOGGER.debug("throw away early trim " + bytes.hex(temp))
+
+
+					level = self._throwawaylevel
+
+					# if we are about to log a debug, make it a warning in future
+					if self._throwawaylevel == logging.DEBUG:
+						self._throwawaylevel = logging.WARN
+
+					_LOGGER.log(level, "throw away early trim " + bytes.hex(temp))
 
 			except SerialException as e:
 				_LOGGER.warn("Serial Exception: " + repr(e))		
