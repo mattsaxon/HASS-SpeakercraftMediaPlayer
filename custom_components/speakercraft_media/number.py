@@ -52,6 +52,11 @@ class SpeakercraftTreble(NumberEntity):
 		return self._name
 
 	@property
+	def unique_id(self):
+		return "speakercraft_zone" + str(self._zone.zone) + "_treble"
+
+
+	@property
 	def min_value(self) -> float:
 		"""Return the minimum value."""
 		return -6.00
@@ -111,6 +116,11 @@ class SpeakercraftBass(NumberEntity):
 	def name(self):
 		"""Return the name of the zone."""
 		return self._name
+
+	@property
+	def unique_id(self):
+		return "speakercraft_zone" + str(self._zone.zone) + "_bass"
+
 
 	@property
 	def min_value(self) -> float:

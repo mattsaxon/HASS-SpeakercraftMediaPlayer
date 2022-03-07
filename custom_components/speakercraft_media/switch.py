@@ -32,7 +32,7 @@ class SpeakercraftPartyModeSwitch(SwitchEntity):
 
 	def __init__(self, hass: HomeAssistant, name: str, scz):
 
-		self._name = name + "_party"
+		self._name = name + " Party"
 		_LOGGER.debug("SCPMS init, Zone " + str(scz.zone) + ", name: " + self._name)
 
 		super().__init__()
@@ -52,6 +52,11 @@ class SpeakercraftPartyModeSwitch(SwitchEntity):
 	def name(self):
 		"""Return the name of the zone."""
 		return self._name
+
+	@property
+	def unique_id(self):
+		return "speakercraft_zone" + str(self._zone.zone) + "_partymode"
+
 
 	@property
 	def is_on(self):
