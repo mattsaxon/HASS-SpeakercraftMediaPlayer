@@ -58,6 +58,10 @@ class SpeakercraftMasterPower(ButtonEntity):
 		return self._name
 
 
+	@property
+	def unique_id(self):
+		return "speakercraft_alloff"
+
 	async def async_press(self, **kwargs) -> None:
 		_LOGGER.debug("Master Power Off")
 		self._controller.cmdalloff()
@@ -83,10 +87,14 @@ class SpeakercraftBassFlat(ButtonEntity):
 		"""Return the name of the zone."""
 		return self._name
 
+	@property
+	def unique_id(self):
+		return "speakercraft_zone" + str(self._zone.zone) + "_bassflat"
 
 	async def async_press(self, **kwargs) -> None:
 		_LOGGER.debug(self._name + " pressed")
 		self._zone.cmdbassflat()
+		
 
 
 
@@ -109,6 +117,9 @@ class SpeakercraftTrebleFlat(ButtonEntity):
 		"""Return the name of the zone."""
 		return self._name
 
+	@property
+	def unique_id(self):
+		return "speakercraft_zone" + str(self._zone.zone) + "_trebleflat"
 
 	async def async_press(self, **kwargs) -> None:
 		_LOGGER.debug(self._name + " pressed")
@@ -136,6 +147,11 @@ class SpeakercraftBassDown(ButtonEntity):
 		return self._name
 
 
+	@property
+	def unique_id(self):
+		return "speakercraft_zone" + str(self._zone.zone) + "_bassdown"
+
+
 	async def async_press(self, **kwargs) -> None:
 		_LOGGER.debug(self._name + " pressed")
 		self._zone.cmdbassdown()
@@ -160,6 +176,10 @@ class SpeakercraftBassUp(ButtonEntity):
 	def name(self):
 		"""Return the name of the zone."""
 		return self._name
+
+	@property
+	def unique_id(self):
+		return "speakercraft_zone" + str(self._zone.zone) + "_bassup"
 
 
 	async def async_press(self, **kwargs) -> None:
@@ -187,6 +207,10 @@ class SpeakercraftTrebleDown(ButtonEntity):
 		"""Return the name of the zone."""
 		return self._name
 
+	@property
+	def unique_id(self):
+		return "speakercraft_zone" + str(self._zone.zone) + "_trebledown"
+
 
 	async def async_press(self, **kwargs) -> None:
 		_LOGGER.debug(self._name + " pressed")
@@ -212,6 +236,10 @@ class SpeakercraftTrebleUp(ButtonEntity):
 	def name(self):
 		"""Return the name of the zone."""
 		return self._name
+
+	@property
+	def unique_id(self):
+		return "speakercraft_zone" + str(self._zone.zone) + "_trebleup"
 
 
 	async def async_press(self, **kwargs) -> None:
