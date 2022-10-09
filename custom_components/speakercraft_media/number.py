@@ -57,32 +57,32 @@ class SpeakercraftTreble(NumberEntity):
 
 
 	@property
-	def min_value(self) -> float:
+	def native_min_value(self) -> float:
 		"""Return the minimum value."""
 		return -6.00
 
 	@property
-	def max_value(self) -> float:
+	def native_max_value(self) -> float:
 		"""Return the maximum value."""
 		return 6.0
 
 	@property
-	def step(self) -> float:
+	def native_step(self) -> float:
 		return 1.0
 
 
 		
 	@property
-	def value(self):
+	def native_value(self):
 		"""Return the state of the device."""
 		_LOGGER.debug("Treble Value  " + str(self._zone.zone) + " " + str(float(self._zone.treble)))
 		return float(self._zone.treble) #self._zone.treble
 
-	async def set_value(self, value: float) -> None:
+	async def set_native_value(self, value: float) -> None:
 		_LOGGER.debug("Treble Set Value  " + str(self._zone.zone) + " " + str(value))
 		self._zone.cmdtreblelevel(int(value))
 
-	def set_value(self, value: float) -> None:
+	def set_native_value(self, value: float) -> None:
 		_LOGGER.debug("Treble Set Value  " + str(self._zone.zone) + " " + str(value))
 		self._zone.cmdtreblelevel(int(value))
 
@@ -123,32 +123,32 @@ class SpeakercraftBass(NumberEntity):
 
 
 	@property
-	def min_value(self) -> float:
+	def native_min_value(self) -> float:
 		"""Return the minimum value."""
 		return -6.00
 
 	@property
-	def max_value(self) -> float:
+	def native_max_value(self) -> float:
 		"""Return the maximum value."""
 		return 6.0
 
 	@property
-	def step(self) -> float:
+	def native_step(self) -> float:
 		return 1.0
 
 
 		
 	@property
-	def value(self):
+	def native_value(self):
 		"""Return the state of the device."""
 		_LOGGER.debug("Bass Value  " + str(self._zone.zone) + " " + str(float(self._zone.bass)))
 		return float(self._zone.bass) #self._zone.Bass
 
-	async def set_value(self, value: float) -> None:
+	async def set__native_value(self, value: float) -> None:
 		_LOGGER.debug("Bass Set Value  " + str(self._zone.zone) + " " + str(value))
 		self._zone.cmdbasslevel(int(value))
 
-	def set_value(self, value: float) -> None:
+	def set_native_value(self, value: float) -> None:
 		_LOGGER.debug("Bass Set Value  " + str(self._zone.zone) + " " + str(value))
 		self._zone.cmdbasslevel(int(value))
 
