@@ -13,13 +13,8 @@ from homeassistant.components.media_player import MediaPlayerEntity
 from . import DOMAIN, CONF_SOURCES, CONF_ZONES, CONF_DEFAULT_SOURCE, CONF_DEFAULT_VOLUME, CONF_SERIAL_PORT, CONF_TARGET
 
 
-from homeassistant.components.media_player.const import (
-	SUPPORT_SELECT_SOURCE,
-	SUPPORT_TURN_OFF,
-	SUPPORT_TURN_ON,
-	SUPPORT_VOLUME_MUTE,
-	SUPPORT_VOLUME_SET,
-	SUPPORT_VOLUME_STEP,
+from homeassistant.components.media_player import (
+	MediaPlayerEntityFeature
 )
 from homeassistant.const import (
 	ATTR_ID,
@@ -111,7 +106,12 @@ class SpeakercraftMediaPlayer(MediaPlayerEntity):
 	@property
 	def supported_features(self):
 		"""Flag media player features that are supported."""
-		return (SUPPORT_VOLUME_MUTE | SUPPORT_VOLUME_SET | SUPPORT_TURN_ON | SUPPORT_TURN_OFF | SUPPORT_SELECT_SOURCE | SUPPORT_VOLUME_STEP)
+		return (MediaPlayerEntityFeature.VOLUME_MUTE | 
+			MediaPlayerEntityFeature.VOLUME_SET | 
+			MediaPlayerEntityFeature.TURN_ON | 
+			MediaPlayerEntityFeature.TURN_OFF | 
+			MediaPlayerEntityFeature.SELECT_SOURCE | 
+			MediaPlayerEntityFeature.VOLUME_STEP)
 
 	@property
 	def source(self):
