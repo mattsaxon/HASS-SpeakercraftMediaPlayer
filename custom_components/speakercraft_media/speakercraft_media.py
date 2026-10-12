@@ -1,6 +1,5 @@
-from distutils.log import WARN
 import logging
-import serial_asyncio
+import serial_asyncio_fast as serial_asyncio
 import asyncio
 from serial import SerialException
 
